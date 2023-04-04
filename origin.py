@@ -40,7 +40,7 @@ def Deps(force_reinstall):
         os.environ['PYTHONWARNINGS'] = 'ignore'
         clear_output()
 
-        done()
+    done()
 
 
 def Depnds(force_reinstall):
