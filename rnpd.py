@@ -164,56 +164,6 @@ def install_webui(huggingface_token):
     print('[1;32mDone.')
 
 
-def install_webui_2(huggingface_token):
-    from huggingface_hub import HfApi, CommitOperationAdd, create_repo
-
-    os.chdir(WORKSPACE_DIR)
-    if huggingface_token:
-        username = HfApi().whoami(huggingface_token)["name"]
-        backup = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve/main/{BACKUP_FILENAME}"
-        response = requests.head(backup)
-        if response.status_code == 302:
-            print('[1;33mRestoring the SD folder...')
-            backup_file = os.path.join(WORKSPACE_DIR, BACKUP_FILENAME)
-            open(backup_file, 'wb').write(requests.get(backup).content)
-            call(f'tar --zstd -xf {BACKUP_FILENAME}', shell=True)
-            call(f'rm {BACKUP_FILENAME}', shell=True)
-        else:
-            print('[1;33mBackup not found, using a fresh/existing repo...')
-            time.sleep(2)
-            if not os.path.exists(STABLE_DIFFUSION_DIR):
-                call(
-                    'wget -q -O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst',
-                    shell=True)
-                call('tar --zstd -xf sd_rep.tar.zst', shell=True)
-                call('rm sd_rep.tar.zst', shell=True)
-            os.chdir(SD_DIR)
-            if not os.path.exists(WEBUI_DIR):
-                call('git clone -q --depth 1 --branch master https://github.com/AUTOMATIC1111/stable-diffusion-webui',
-                     shell=True)
-
-    else:
-        print('[1;33mInstalling/Updating the repo...')
-        os.chdir(WORKSPACE_DIR)
-        if not os.path.exists(STABLE_DIFFUSION_DIR):
-            call('wget -q -O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst',
-                 shell=True)
-            call('tar --zstd -xf sd_rep.tar.zst', shell=True)
-            call('rm sd_rep.tar.zst', shell=True)
-
-        os.chdir(SD_DIR)
-        if not os.path.exists(WEBUI_DIR):
-            call('git clone -q --depth 1 --branch master https://github.com/AUTOMATIC1111/stable-diffusion-webui',
-                 shell=True)
-
-    os.chdir('/workspace/sd/stable-diffusion-webui/')
-    call('git reset --hard', shell=True)
-    # call('git pull', shell=True)
-    os.chdir('/workspace')
-    clear_output()
-    print('[1;32mDone.')
-
-
 def get_start_params(download_sd_model: bool) -> str:
     params = '--disable-console-progressbars      '
     params += ' --no-half-vae'
@@ -231,6 +181,24 @@ def get_start_params(download_sd_model: bool) -> str:
     params += f' --hypernetwork_dir {HYPERNETWORKS_DIR}'
     params += f' --lyco_dir {LYCORIS_DIR}'
     params += f' --embeddings_dir {EMBEDDINGS_DIR}'
+
+    if not os.path.isdir(CKPT_DIR):
+        os.makedirs(CKPT_DIR)
+
+    if not os.path.isdir(VAE_DIR):
+        os.makedirs(VAE_DIR)
+
+    if not os.path.isdir(LORA_DIR):
+        os.makedirs(LORA_DIR)
+
+    if not os.path.isdir(HYPERNETWORKS_DIR):
+        os.makedirs(HYPERNETWORKS_DIR)
+
+    if not os.path.isdir(LYCORIS_DIR):
+        os.makedirs(LYCORIS_DIR)
+
+    if not os.path.isdir(HYPERNETWORKS_DIR):
+        os.makedirs(HYPERNETWORKS_DIR)
 
     if not download_sd_model:
         params += ' --no-download-sd-model'
