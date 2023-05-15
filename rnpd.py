@@ -123,8 +123,8 @@ def download_stable_diffusion():
 
     if not os.path.isdir(STABLE_DIFFUSION_DIR):
         wget('-O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst')
-        unzst('sd_rep.tar.zst')
-        call(f'rm sd_rep.tar.zst', shell=True)
+        call('tar --zstd -xf sd_rep.tar.zst', shell=True)
+        call('rm sd_rep.tar.zst', shell=True)
 
 
 def install_webui(huggingface_token):
@@ -153,21 +153,63 @@ def install_webui(huggingface_token):
     else:
         print('[1;33mInstalling/Updating the repo...')
         os.chdir(WORKSPACE_DIR)
-        # download_stable_diffusion()
-
-        os.chdir('/workspace')
-        if not os.path.exists('/workspace/sd/stablediffusion'):
-            call('wget -q -O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst',
-                 shell=True)
-            call('tar --zstd -xf sd_rep.tar.zst', shell=True)
-            call('rm sd_rep.tar.zst', shell=True)
-
-    download_webui()
+        download_stable_diffusion()
+        download_webui()
 
     os.chdir(WEBUI_DIR)
     call('git reset --hard', shell=True)
     # call('git pull', shell=True)
     os.chdir(WORKSPACE_DIR)
+    clear_output()
+    print('[1;32mDone.')
+
+
+def install_webui_2(huggingface_token):
+    from huggingface_hub import HfApi, CommitOperationAdd, create_repo
+
+    os.chdir(WORKSPACE_DIR)
+    if huggingface_token:
+        username = HfApi().whoami(huggingface_token)["name"]
+        backup = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve/main/{BACKUP_FILENAME}"
+        response = requests.head(backup)
+        if response.status_code == 302:
+            print('[1;33mRestoring the SD folder...')
+            backup_file = os.path.join(WORKSPACE_DIR, BACKUP_FILENAME)
+            open(backup_file, 'wb').write(requests.get(backup).content)
+            call(f'tar --zstd -xf {BACKUP_FILENAME}', shell=True)
+            call(f'rm {BACKUP_FILENAME}', shell=True)
+        else:
+            print('[1;33mBackup not found, using a fresh/existing repo...')
+            time.sleep(2)
+            if not os.path.exists(STABLE_DIFFUSION_DIR):
+                call(
+                    'wget -q -O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst',
+                    shell=True)
+                call('tar --zstd -xf sd_rep.tar.zst', shell=True)
+                call('rm sd_rep.tar.zst', shell=True)
+            os.chdir(SD_DIR)
+            if not os.path.exists(WEBUI_DIR):
+                call('git clone -q --depth 1 --branch master https://github.com/AUTOMATIC1111/stable-diffusion-webui',
+                     shell=True)
+
+    else:
+        print('[1;33mInstalling/Updating the repo...')
+        os.chdir(WORKSPACE_DIR)
+        if not os.path.exists(STABLE_DIFFUSION_DIR):
+            call('wget -q -O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst',
+                 shell=True)
+            call('tar --zstd -xf sd_rep.tar.zst', shell=True)
+            call('rm sd_rep.tar.zst', shell=True)
+
+        os.chdir(SD_DIR)
+        if not os.path.exists(WEBUI_DIR):
+            call('git clone -q --depth 1 --branch master https://github.com/AUTOMATIC1111/stable-diffusion-webui',
+                 shell=True)
+
+    os.chdir('/workspace/sd/stable-diffusion-webui/')
+    call('git reset --hard', shell=True)
+    # call('git pull', shell=True)
+    os.chdir('/workspace')
     clear_output()
     print('[1;32mDone.')
 
