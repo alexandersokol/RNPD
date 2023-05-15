@@ -2,6 +2,8 @@ import os
 import shutil
 import requests
 import time
+import fileinput
+import sys
 from subprocess import call
 from IPython.display import clear_output
 
@@ -20,6 +22,14 @@ BACKUP_FILENAME = 'sd_backup_rnpd.tar.zst'
 SD_DIR = os.path.join(WORKSPACE_DIR, 'sd', )
 STABLE_DIFFUSION_DIR = os.path.join(SD_DIR, 'stablediffusion')
 WEBUI_DIR = os.path.join(SD_DIR, 'stable-diffusion-webui')
+
+MODELS_DIR = os.path.join(WORKSPACE_DIR, 'models')
+CKPT_DIR = os.path.join(MODELS_DIR, 'stable-diffusion')
+VAE_DIR = os.path.join(MODELS_DIR, 'vae')
+LORA_DIR = os.path.join(MODELS_DIR, 'lora')
+HYPERNETWORKS_DIR = os.path.join(MODELS_DIR, 'hypernetworks')
+LYCORIS_DIR = os.path.join(MODELS_DIR, 'lycoris')
+EMBEDDINGS_DIR = os.path.join(MODELS_DIR, 'embeddings')
 
 
 def pip_install(arguments: str):
@@ -92,7 +102,7 @@ def install_dependencies(force_reinstall: bool):
         shutil.rmtree('deps')
 
         clear_output()
-        print('[1;33mDone.')
+        print('[1;32mDone.')
 
     os.chdir(WORKSPACE_DIR)
     os.environ['PYTHONWARNINGS'] = 'ignore'
@@ -100,7 +110,7 @@ def install_dependencies(force_reinstall: bool):
 
 def download_webui():
     if not os.path.isdir(WEBUI_DIR):
-        
+
         if not os.path.isdir(SD_DIR):
             os.mkdir(SD_DIR)
 
@@ -114,7 +124,7 @@ def download_stable_diffusion():
     if not os.path.isdir(STABLE_DIFFUSION_DIR):
         wget('-O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst')
         unzst('sd_rep.tar.zst')
-        os.remove('sd_rep.tar.zst')
+        call(f'rm sd_rep.tar.zst', shell=True)
 
 
 def install_webui(huggingface_token):
@@ -152,3 +162,142 @@ def install_webui(huggingface_token):
     os.chdir(WORKSPACE_DIR)
     clear_output()
     print('[1;32mDone.')
+
+
+def get_start_params(download_sd_model: bool) -> str:
+    params = '--disable-console-progressbars      '
+    params += ' --no-half-vae'
+    params += ' --disable-safe-unpickle'
+    params += ' --api'
+    params += ' --opt-sdp-attention'
+    params += ' --enable-insecure-extension-access'
+    params += ' --skip-version-check'
+    params += ' --listen'
+    params += ' --port 3000'
+    params += ' --theme dark'
+    params += f' --ckpt-dir {CKPT_DIR}'
+    params += f' --vae_dir {VAE_DIR}'
+    params += f' --lora_dir {LORA_DIR}'
+    params += f' --hypernetwork_dir {HYPERNETWORKS_DIR}'
+    params += f' --lyco_dir {LYCORIS_DIR}'
+    params += f' --embeddings_dir {EMBEDDINGS_DIR}'
+
+    if not download_sd_model:
+        params += ' --no-download-sd-model'
+
+    return params
+
+
+def prepare_initial_model() -> bool:
+    has_prepared_models = False
+
+    extensions = ['.safetensors', '.ckpt', '.pt', '.bin']
+    for root, dirs, files in os.walk(CKPT_DIR):
+        for file in files:
+            if any(file.endswith(ext) for ext in extensions):
+                has_prepared_models = True
+
+    if not has_prepared_models and os.path.exists('/workspace/auto-models/SDv1-5.ckpt'):
+        call(f'mv /workspace/auto-models/SDv1-5.ckpt ${os.path.join(CKPT_DIR, "SDv1-5.ckpt")}', shell=True)
+        has_prepared_models = True
+
+    if os.path.isdir('/workspace/auto-models'):
+        shutil.rmtree('/workspace/auto-models')
+
+    return has_prepared_models
+
+
+def webui_config():
+    import gradio
+
+    gradio.close_all()
+
+    call(
+        'wget -q -O /usr/local/lib/python3.10/dist-packages/gradio/blocks.py https://raw.githubusercontent.com/TheLastBen/fast-stable-diffusion/main/AUTOMATIC1111_files/blocks.py',
+        shell=True)
+    os.chdir(os.path.join(WEBUI_DIR, 'modules'))
+
+    call(
+        'wget -q -O paths.py https://raw.githubusercontent.com/TheLastBen/fast-stable-diffusion/main/AUTOMATIC1111_files/paths.py',
+        shell=True)
+    call(
+        "sed -i 's@/content/gdrive/MyDrive/sd/stablediffusion@/workspace/sd/stablediffusion@' /workspace/sd/stable-diffusion-webui/modules/paths.py",
+        shell=True)
+    call(
+        "sed -i 's@\"quicksettings\": OptionInfo(.*@\"quicksettings\": OptionInfo(\"sd_model_checkpoint,  sd_vae, CLIP_stop_at_last_layers, inpainting_mask_weight, initial_noise_multiplier\", \"Quicksettings list\"),@' /workspace/sd/stable-diffusion-webui/modules/shared.py",
+        shell=True)
+    call("sed -i 's@print(\"No module.*@@' /workspace/sd/stablediffusion/ldm/modules/diffusionmodules/model.py",
+         shell=True)
+
+    os.chdir(WEBUI_DIR)
+
+    clear_output()
+
+    podid = os.environ.get('RUNPOD_POD_ID')
+    localurl = f"{podid}-3000.proxy.runpod.net"
+
+    for line in fileinput.input('/usr/local/lib/python3.10/dist-packages/gradio/blocks.py', inplace=True):
+        if line.strip().startswith('self.server_name ='):
+            line = f'            self.server_name = "{localurl}"\n'
+        if line.strip().startswith('self.protocol = "https"'):
+            line = '            self.protocol = "https"\n'
+        if line.strip().startswith('if self.local_url.startswith("https") or self.is_colab'):
+            line = ''
+        if line.strip().startswith('else "http"'):
+            line = ''
+        sys.stdout.write(line)
+
+    is_model_prepared = prepare_initial_model()
+
+    return get_start_params(download_sd_model=not is_model_prepared)
+
+
+def backup(huggingface_token):
+    from slugify import slugify
+    from huggingface_hub import HfApi, CommitOperationAdd, create_repo
+
+    if huggingface_token == "":
+        print('[1;31mA huggingface write token is required')
+
+    else:
+        os.chdir('/workspace')
+
+        if os.path.exists('sd'):
+
+            call(
+                f"tar "
+                f"--exclude='stable-diffusion-webui/models/*/*' "
+                f"--exclude='sd-webui-controlnet/models/*'"
+                f"--exclude='sd-webui-controlnet/outputs/*'"
+                f"--exclude='sd-webui-controlnet/outputs/*/*'"
+                f"--exclude='sd-webui-controlnet/outputs/*/*/*'"
+                f"--exclude='sd-webui-controlnet/outputs/*/*/*/*'"
+                f" --zstd -cf {BACKUP_FILENAME}",
+                shell=True)
+            api = HfApi()
+            username = api.whoami(token=huggingface_token)["name"]
+
+            repo_id = f"{username}/{slugify(REPOSITORY_NAME)}"
+
+            print("[1;32mBacking up...")
+
+            operations = [CommitOperationAdd(path_in_repo=BACKUP_FILENAME,
+                                             path_or_fileobj=os.path.join(WORKSPACE_DIR, BACKUP_FILENAME))]
+
+            create_repo(repo_id, private=True, token=huggingface_token, exist_ok=True, repo_type="dataset")
+
+            api.create_commit(
+                repo_id=repo_id,
+                repo_type="dataset",
+                operations=operations,
+                commit_message="SD folder Backup",
+                token=huggingface_token
+            )
+
+            call(f'rm {BACKUP_FILENAME}', shell=True)
+            clear_output()
+
+            print("[1;32mDone")
+
+        else:
+            print('[1;33mNothing to backup')
