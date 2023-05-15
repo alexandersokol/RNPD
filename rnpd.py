@@ -10,7 +10,8 @@ from IPython.display import clear_output
 INSTALL_PACKAGES = [
     "gdown",
     "numpy==1.23.5",
-    "accelerate==0.12.0"
+    "accelerate==0.12.0",
+    "gradio_client"
 ]
 GRADIO_PACKAGE = 'gradio==3.28.1'
 
