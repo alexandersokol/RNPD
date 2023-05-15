@@ -153,8 +153,16 @@ def install_webui(huggingface_token):
     else:
         print('[1;33mInstalling/Updating the repo...')
         os.chdir(WORKSPACE_DIR)
-        download_stable_diffusion()
-        download_webui()
+        # download_stable_diffusion()
+
+        os.chdir('/workspace')
+        if not os.path.exists('/workspace/sd/stablediffusion'):
+            call('wget -q -O sd_rep.tar.zst https://huggingface.co/TheLastBen/dependencies/resolve/main/sd_rep.tar.zst',
+                 shell=True)
+            call('tar --zstd -xf sd_rep.tar.zst', shell=True)
+            call('rm sd_rep.tar.zst', shell=True)
+
+    download_webui()
 
     os.chdir(WEBUI_DIR)
     call('git reset --hard', shell=True)
