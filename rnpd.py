@@ -1,10 +1,11 @@
+import fileinput
 import os
 import shutil
-import requests
-import time
-import fileinput
 import sys
+import time
 from subprocess import call
+
+import requests
 from IPython.display import clear_output
 
 INSTALL_PACKAGES = [
@@ -129,7 +130,7 @@ def download_stable_diffusion():
 
 
 def install_webui(huggingface_token):
-    from huggingface_hub import HfApi, CommitOperationAdd, create_repo
+    from huggingface_hub import HfApi
 
     os.chdir(WORKSPACE_DIR)
 
@@ -217,7 +218,7 @@ def prepare_initial_model() -> bool:
                 has_prepared_models = True
 
     if not has_prepared_models and os.path.exists('/workspace/auto-models/SDv1-5.ckpt'):
-        call(f'mv /workspace/auto-models/SDv1-5.ckpt ${os.path.join(CKPT_DIR, "SDv1-5.ckpt")}', shell=True)
+        shutil.move('/workspace/auto-models/SDv1-5.ckpt', os.path.join(CKPT_DIR, "SDv1-5.ckpt"))
         has_prepared_models = True
 
     if os.path.isdir('/workspace/auto-models'):
