@@ -100,6 +100,10 @@ def install_dependencies(force_reinstall: bool):
 
 def download_webui():
     if not os.path.isdir(WEBUI_DIR):
+        
+        if not os.path.isdir(SD_DIR):
+            os.mkdir(SD_DIR)
+
         os.chdir(SD_DIR)
         git_clone('-q --depth 1 --branch master https://github.com/AUTOMATIC1111/stable-diffusion-webui')
 
