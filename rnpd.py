@@ -178,11 +178,11 @@ def get_start_params(download_sd_model: bool) -> str:
     params += ' --port 3000'
     params += ' --theme dark'
     params += f' --ckpt-dir {CKPT_DIR}'
-    params += f' --vae_dir {VAE_DIR}'
-    params += f' --lora_dir {LORA_DIR}'
-    params += f' --hypernetwork_dir {HYPERNETWORKS_DIR}'
-    params += f' --lyco_dir {LYCORIS_DIR}'
-    params += f' --embeddings_dir {EMBEDDINGS_DIR}'
+    params += f' --vae-dir {VAE_DIR}'
+    params += f' --lora-dir {LORA_DIR}'
+    params += f' --hypernetwork-dir {HYPERNETWORKS_DIR}'
+    params += f' --lyco-dir {LYCORIS_DIR}'
+    params += f' --embeddings-dir {EMBEDDINGS_DIR}'
 
     if not os.path.isdir(CKPT_DIR):
         os.makedirs(CKPT_DIR)
@@ -269,59 +269,6 @@ def webui_config():
 
     is_model_prepared = prepare_initial_model()
 
-    return get_start_params(download_sd_model=not is_model_prepared)
-
-
-def sd(User="", Password="", model=""):
-    import gradio
-
-    gradio.close_all()
-
-    auth = f"--gradio-auth {User}:{Password}"
-    if User == "" or Password == "":
-        auth = ""
-
-    call(
-        'wget -q -O /usr/local/lib/python3.10/dist-packages/gradio/blocks.py https://raw.githubusercontent.com/TheLastBen/fast-stable-diffusion/main/AUTOMATIC1111_files/blocks.py',
-        shell=True)
-
-    os.chdir('/workspace/sd/stable-diffusion-webui/modules')
-    call(
-        'wget -q -O paths.py https://raw.githubusercontent.com/TheLastBen/fast-stable-diffusion/main/AUTOMATIC1111_files/paths.py',
-        shell=True)
-    call(
-        "sed -i 's@/content/gdrive/MyDrive/sd/stablediffusion@/workspace/sd/stablediffusion@' /workspace/sd/stable-diffusion-webui/modules/paths.py",
-        shell=True)
-    call(
-        "sed -i 's@\"quicksettings\": OptionInfo(.*@\"quicksettings\": OptionInfo(\"sd_model_checkpoint,  sd_vae, CLIP_stop_at_last_layers, inpainting_mask_weight, initial_noise_multiplier\", \"Quicksettings list\"),@' /workspace/sd/stable-diffusion-webui/modules/shared.py",
-        shell=True)
-    call("sed -i 's@print(\"No module.*@@' /workspace/sd/stablediffusion/ldm/modules/diffusionmodules/model.py",
-         shell=True)
-    os.chdir('/workspace/sd/stable-diffusion-webui')
-    clear_output()
-
-    podid = os.environ.get('RUNPOD_POD_ID')
-    localurl = f"{podid}-3000.proxy.runpod.net"
-
-    for line in fileinput.input('/usr/local/lib/python3.10/dist-packages/gradio/blocks.py', inplace=True):
-        if line.strip().startswith('self.server_name ='):
-            line = f'            self.server_name = "{localurl}"\n'
-        if line.strip().startswith('self.protocol = "https"'):
-            line = '            self.protocol = "https"\n'
-        if line.strip().startswith('if self.local_url.startswith("https") or self.is_colab'):
-            line = ''
-        if line.strip().startswith('else "http"'):
-            line = ''
-        sys.stdout.write(line)
-
-    if os.path.isfile(model):
-        mdlpth = "--ckpt " + model
-    else:
-        mdlpth = "--ckpt-dir " + model
-
-    configf = "--disable-console-progressbars --no-half-vae --disable-safe-unpickle --api --no-download-sd-model --opt-sdp-attention --enable-insecure-extension-access  --skip-version-check --listen --port 3000 " + auth + " " + mdlpth
-
-    is_model_prepared = prepare_initial_model()
     return get_start_params(download_sd_model=not is_model_prepared)
 
 
