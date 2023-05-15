@@ -181,8 +181,11 @@ def get_start_params(download_sd_model: bool) -> str:
     params += f' --vae-dir {VAE_DIR}'
     params += f' --lora-dir {LORA_DIR}'
     params += f' --hypernetwork-dir {HYPERNETWORKS_DIR}'
-    params += f' --lyco-dir {LYCORIS_DIR}'
     params += f' --embeddings-dir {EMBEDDINGS_DIR}'
+
+    lycoris_ext_path = os.path.join(WEBUI_DIR, 'extensions', 'a1111-sd-webui-lycoris')
+    if os.path.exists(lycoris_ext_path):
+        params += f' --lyco-dir {LYCORIS_DIR}'
 
     if not os.path.isdir(CKPT_DIR):
         os.makedirs(CKPT_DIR)
