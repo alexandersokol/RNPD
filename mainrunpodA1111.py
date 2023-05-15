@@ -1,6 +1,6 @@
 import os
 from IPython.display import clear_output
-from subprocess import call, getoutput, Popen
+from subprocess import call, getoutput, Popen, run
 import time
 import ipywidgets as widgets
 import requests
@@ -11,7 +11,6 @@ from urllib.parse import urlparse
 import re
 
 
-# Dependencies installation
 def Deps(force_reinstall):
 
     if not force_reinstall and os.path.exists('/usr/local/lib/python3.10/dist-packages/safetensors'):
@@ -32,48 +31,18 @@ def Deps(force_reinstall):
         os.chdir('deps')
         call('wget -q https://huggingface.co/TheLastBen/dependencies/resolve/main/rnpddeps-t2.tar.zst', shell=True, stdout=open('/dev/null', 'w'))
         call('tar -C / --zstd -xf rnpddeps-t2.tar.zst', shell=True, stdout=open('/dev/null', 'w'))
+        call('pip install --root-user-action=ignore --disable-pip-version-check gradio==3.28.1 -qq', shell=True, stdout=open('/dev/null', 'w'))
         call("sed -i 's@~/.cache@/workspace/cache@' /usr/local/lib/python3.10/dist-packages/transformers/utils/hub.py", shell=True)
         os.chdir('/workspace')
-        call("git clone --depth 1 -q --branch main https://github.com/TheLastBen/diffusers", shell=True, stdout=open('/dev/null', 'w'))
+        call("git clone --depth 1 -q --x main https://github.com/TheLastBen/diffusers", shell=True, stdout=open('/dev/null', 'w'))
         call("rm -r deps", shell=True)
         os.chdir('/workspace')
         os.environ['PYTHONWARNINGS'] = 'ignore'
         clear_output()
 
-    done()
-
-
-def Depnds(force_reinstall):
-
-    if not force_reinstall and os.path.exists('/usr/local/lib/python3.10/dist-packages/safetensors'):
-        ntbks()
-        print('[1;32mModules and notebooks updated, dependencies already installed')
-
-    else:
-        print('[1;33mInstalling the dependencies...')
-        call('pip install --root-user-action=ignore --disable-pip-version-check --no-deps -qq gdown numpy==1.23.5 accelerate==0.12.0 --force-reinstall', shell=True, stdout=open('/dev/null', 'w'))
-        ntbks()
-        if os.path.exists('deps'):
-            call("rm -r deps", shell=True)
-        if os.path.exists('diffusers'):
-            call("rm -r diffusers", shell=True)
-        call('mkdir deps', shell=True)
-        if not os.path.exists('cache'):
-            call('mkdir cache', shell=True)
-        os.chdir('deps')
-        call('wget -q -i https://github.com/TheLastBen/fast-stable-diffusion/raw/main/Dependencies/rnpddeps.txt', shell=True, stdout=open('/dev/null', 'w'))
-        call('dpkg -i *.deb', shell=True, stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
-        call('tar -C / --zstd -xf rnpddeps.tar.zst', shell=True, stdout=open('/dev/null', 'w'))
-        Popen('apt-get install libfontconfig1 libgles2-mesa-dev -q=2 --no-install-recommends', shell=True, stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
-        call("sed -i 's@~/.cache@/workspace/cache@' /usr/local/lib/python3.10/dist-packages/transformers/utils/hub.py", shell=True)
-        os.chdir('/workspace')
-        call("git clone --depth 1 -q --branch main https://github.com/TheLastBen/diffusers", shell=True, stdout=open('/dev/null', 'w'))
-        call("pip install --root-user-action=ignore -qq gradio==3.23", shell=True, stdout=open('/dev/null', 'w'))
-        call("rm -r deps", shell=True)
-        os.chdir('/workspace')
-        clear_output()
-
         done()
+
+
 
 
 def ntbks():
@@ -208,7 +177,7 @@ def CNet(ControlNet_Model, ControlNet_v2_Model):
         else:
           print(f"[1;32mThe model {filename} already exists[0m")    
 
-
+    wrngv1=False
     os.chdir('/workspace/sd/stable-diffusion-webui/extensions')
     if not os.path.exists("sd-webui-controlnet"):
       call('git clone https://github.com/Mikubill/sd-webui-controlnet.git', shell=True)
@@ -227,12 +196,18 @@ def CNet(ControlNet_Model, ControlNet_v2_Model):
 
     call('wget -q -O CN_models.txt https://github.com/TheLastBen/fast-stable-diffusion/raw/main/AUTOMATIC1111_files/CN_models.txt', shell=True)
     call('wget -q -O CN_models_v2.txt https://github.com/TheLastBen/fast-stable-diffusion/raw/main/AUTOMATIC1111_files/CN_models_v2.txt', shell=True)
-    
+      
     with open("CN_models.txt", 'r') as f:
         mdllnk = f.read().splitlines()
     with open("CN_models_v2.txt", 'r') as d:
         mdllnk_v2 = d.read().splitlines()
     call('rm CN_models.txt CN_models_v2.txt', shell=True)
+    
+    cfgnames=[os.path.basename(url).split('.')[0]+'.yaml' for url in mdllnk_v2]
+    os.chdir('/workspace/sd/stable-diffusion-webui/extensions/sd-webui-controlnet/models')
+    for name in cfgnames:
+        run(['cp', 'cldm_v21.yaml', name])
+    os.chdir('/workspace')
 
     if ControlNet_Model == "All" or ControlNet_Model == "all" :     
       for lnk in mdllnk:
@@ -240,14 +215,14 @@ def CNet(ControlNet_Model, ControlNet_v2_Model):
       clear_output()
 
       
-    elif ControlNet_Model == "9":
+    elif ControlNet_Model == "15":
       mdllnk=list(filter(lambda x: 't2i' in x, mdllnk))
       for lnk in mdllnk:
           download(lnk, mdldir)
       clear_output()        
 
 
-    elif ControlNet_Model.isdigit() and int(ControlNet_Model)-1<8:
+    elif ControlNet_Model.isdigit() and int(ControlNet_Model)-1<14 and int(ControlNet_Model)>0:
       download(mdllnk[int(ControlNet_Model)-1], mdldir)
       clear_output()
       
@@ -257,26 +232,31 @@ def CNet(ControlNet_Model, ControlNet_v2_Model):
 
     else:
       print('[1;31mWrong ControlNet V1 choice, try again')
+      wrngv1=True
 
 
     if ControlNet_v2_Model == "All" or ControlNet_v2_Model == "all" :
       for lnk_v2 in mdllnk_v2:
           download(lnk_v2, mdldir)
-      clear_output()
+      if not wrngv1:
+        clear_output()
       done()
 
     elif ControlNet_v2_Model.isdigit() and int(ControlNet_v2_Model)-1<5:
       download(mdllnk_v2[int(ControlNet_v2_Model)-1], mdldir)
-      clear_output()
+      if not wrngv1:
+        clear_output()
       done()
     
     elif ControlNet_v2_Model == "none":
        pass
-       clear_output()
+       if not wrngv1:
+        clear_output()
        done()       
 
     else:
       print('[1;31mWrong ControlNet V2 choice, try again')
+
 
 
 def sd(User, Password, model):
@@ -293,7 +273,9 @@ def sd(User, Password, model):
    
     os.chdir('/workspace/sd/stable-diffusion-webui/modules')
     call('wget -q -O paths.py https://raw.githubusercontent.com/TheLastBen/fast-stable-diffusion/main/AUTOMATIC1111_files/paths.py', shell=True)
-    call("sed -i 's@/content/gdrive/MyDrive/sd/stablediffusion@/workspace/sd/stablediffusion@' /workspace/sd/stable-diffusion-webui/modules/paths.py", shell=True)   
+    call("sed -i 's@/content/gdrive/MyDrive/sd/stablediffusion@/workspace/sd/stablediffusion@' /workspace/sd/stable-diffusion-webui/modules/paths.py", shell=True)
+    call("sed -i 's@\"quicksettings\": OptionInfo(.*@\"quicksettings\": OptionInfo(\"sd_model_checkpoint,  sd_vae, CLIP_stop_at_last_layers, inpainting_mask_weight, initial_noise_multiplier\", \"Quicksettings list\"),@' /workspace/sd/stable-diffusion-webui/modules/shared.py", shell=True)
+    call("sed -i 's@print(\"No module.*@@' /workspace/sd/stablediffusion/ldm/modules/diffusionmodules/model.py", shell=True)
     os.chdir('/workspace/sd/stable-diffusion-webui')
     clear_output()
 
@@ -317,8 +299,7 @@ def sd(User, Password, model):
     else:
         mdlpth="--ckpt-dir "+model
 
-    configf="--disable-console-progressbars --no-half-vae --disable-safe-unpickle --api --no-download-sd-model --xformers --enable-insecure-extension-access  --skip-version-check --listen --port 3000 "+auth+" "+mdlpth
-    python webui.py --disable-console-progressbars --no-half-vae --disable-safe-unpickle --api --no-download-sd-model --xformers --enable-insecure-extension-access  --skip-version-check --listen --port 3000 --ckpt-dir /Users/alexander/Projects/Python/stable-diffusion-webui/models/Stable-diffusion
+    configf="--disable-console-progressbars --no-half-vae --disable-safe-unpickle --api --no-download-sd-model --opt-sdp-attention --enable-insecure-extension-access  --skip-version-check --listen --port 3000 "+auth+" "+mdlpth
 
     return configf
 
