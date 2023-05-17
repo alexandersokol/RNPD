@@ -154,10 +154,10 @@ def install_webui(huggingface_token):
     if huggingface_token:
         username = HfApi().whoami(huggingface_token)["name"]
         backup_url = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
-                 f"/main/{BACKUP_FILENAME}"
+                     f"/main/{BACKUP_FILENAME}"
         response = requests.head(backup_url)
 
-        if response.status_code == 302:
+        if response.status_code == 302 or response.status_code == 200:
             print('[1;33mRestoring the SD backup folder...')
             os.chdir(WORKSPACE_DIR)
             webui_path = os.path.join(WORKSPACE_DIR, BACKUP_FILENAME)
@@ -372,7 +372,7 @@ def backup_images(huggingface_token):
         print(backup_url)
         response = requests.head(backup_url)
 
-        if response.status_code == 302:
+        if response.status_code == 302 or response.status_code == 200:
             print('[1;33mSetting up GDrive account...')
             os.chdir(WORKSPACE_DIR)
             webui_path = os.path.join(WORKSPACE_DIR, GDRIVE_ACCOUNT_FILE)
