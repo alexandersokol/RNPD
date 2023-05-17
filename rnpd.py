@@ -380,7 +380,7 @@ def backup_images(huggingface_token):
             os.remove(GDRIVE_ACCOUNT_FILE)
 
             print("[1;31mBacking up images")
-            call(f'tar -zcvf outputs.tar.gz {os.path.join(WORKSPACE_DIR, "outputs")}', shell=True)
+            call(f'tar -zcvf outputs.tar.gz outputs', shell=True)
             export_file_path = rename_file_with_timestamp(os.path.join(WORKSPACE_DIR, "outputs.tar.gz"))
             call(f'gdrive files upload {export_file_path} --parent {GDRIVE_ACCOUNT_FILE}', shell=True)
             call(f'rm {export_file_path}', shell=True)
