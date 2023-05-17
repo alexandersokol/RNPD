@@ -377,7 +377,9 @@ def backup_images(huggingface_token):
             os.chdir(WORKSPACE_DIR)
             webui_path = os.path.join(WORKSPACE_DIR, GDRIVE_ACCOUNT_FILE)
             open(webui_path, 'wb').write(requests.get(backup_url).content)
+            time.sleep(5)
             call(f'gdrive account import {GDRIVE_ACCOUNT_FILE}')
+            os.remove(GDRIVE_ACCOUNT_FILE)
 
             print("[1;31mBacking up images")
             call(f'tar -zcvf outputs.tar.gz {os.path.join(WORKSPACE_DIR, "outputs")}')
