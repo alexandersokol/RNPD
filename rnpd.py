@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import time
+from datetime import datetime
 from subprocess import call
 
 import requests
@@ -20,6 +21,8 @@ WORKSPACE_DIR = "/workspace"
 
 REPOSITORY_NAME = 'rnpd-stable-diffusion'
 BACKUP_FILENAME = 'sd_backup_rnpd.tar.zst'
+GDRIVE_ACCOUNT_FILE = 'gdrive_export_account.tar'
+GDRIVE_EXPORT_DIR_ID = '1uafS8-3hieMMevL0IkcWWWlBwD8lM3gr'
 
 SD_DIR = os.path.join(WORKSPACE_DIR, 'sd', )
 STABLE_DIFFUSION_DIR = os.path.join(SD_DIR, 'stablediffusion')
@@ -102,6 +105,11 @@ def install_dependencies(force_reinstall: bool):
         git_clone('--depth 1 -q --x main https://github.com/TheLastBen/diffusers')
 
         shutil.rmtree('deps')
+
+        wget('https://github.com/glotlabs/gdrive/releases/download/3.9.0/gdrive_linux-x64.tar.gz')
+        call('tar -xf gdrive_linux-x64.tar.gz', shell=True)
+        call('rm gdrive_linux-x64.tar.gz', shell=True)
+        call('mv gdrive /usr/bin/gdrive')
 
         clear_output()
         print('[1;32mDone.')
@@ -292,9 +300,10 @@ def backup(huggingface_token):
                 f"--exclude='stable-diffusion-webui/models/*/*' "
                 f"--exclude='sd-webui-controlnet/models/*'"
                 f"--exclude='sd-webui-controlnet/outputs/*'"
-                f"--exclude='sd-webui-controlnet/outputs/*/*'"
-                f"--exclude='sd-webui-controlnet/outputs/*/*/*'"
-                f"--exclude='sd-webui-controlnet/outputs/*/*/*/*'"
+                f"--exclude='stable-diffusion-webui/outputs/*'"
+                f"--exclude='stable-diffusion-webui/outputs/*/*'"
+                f"--exclude='stable-diffusion-webui/outputs/*/*/*'"
+                f"--exclude='stable-diffusion-webui/outputs/*/*/*/*'"
                 f" --zstd -cf {BACKUP_FILENAME}",
                 shell=True)
             api = HfApi()
@@ -318,9 +327,55 @@ def backup(huggingface_token):
             )
 
             call(f'rm {BACKUP_FILENAME}', shell=True)
+
+            backup_images(huggingface_token)
+
             clear_output()
-
             print("[1;32mDone")
-
         else:
             print('[1;33mNothing to backup')
+
+
+def rename_file_with_timestamp(file_path):
+    current_datetime = datetime.now()
+    timestamp = current_datetime.strftime("%d-%m-%Y_%H-%M-%S")
+
+    directory, filename = os.path.split(file_path)
+
+    file_extension = os.path.splitext(filename)[1]
+
+    new_filename = f"{timestamp}{file_extension}"
+
+    new_file_path = os.path.join(directory, new_filename)
+
+    os.rename(file_path, new_file_path)
+    return new_filename
+
+
+def backup_images(huggingface_token):
+    from huggingface_hub import HfApi
+
+    if os.path.exists('/usr/bin/gdrive'):
+        username = HfApi().whoami(huggingface_token)["name"]
+        backup = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
+                 f"/main/{GDRIVE_ACCOUNT_FILE}"
+        response = requests.head(backup)
+
+        if response.status_code == 302:
+            print('[1;33mSetting up GDrive account...')
+            os.chdir(WORKSPACE_DIR)
+            webui_path = os.path.join(WORKSPACE_DIR, GDRIVE_ACCOUNT_FILE)
+            open(webui_path, 'wb').write(requests.get(backup).content)
+            call(f'gdrive account import {GDRIVE_ACCOUNT_FILE}')
+
+            print("[1;31mBacking up images")
+            call(f'tar -zcvf outputs.tar.gz {os.path.join(WORKSPACE_DIR, "outputs")}')
+            export_file_path = rename_file_with_timestamp({os.path.join(WORKSPACE_DIR, "outputs.tar.gz")})
+            call(f'gdrive files upload {export_file_path} --parent {GDRIVE_ACCOUNT_FILE}')
+            call(f'rm {export_file_path}')
+            call(f'rm -rf outputs')
+            print("[1;32mDone")
+        else:
+            print("[1;31mGdrive account file in the repo.")
+    else:
+        print("[1;31mGdrive not installed")
