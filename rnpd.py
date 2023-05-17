@@ -153,15 +153,15 @@ def install_webui(huggingface_token):
 
     if huggingface_token:
         username = HfApi().whoami(huggingface_token)["name"]
-        backup = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
+        backup_url = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
                  f"/main/{BACKUP_FILENAME}"
-        response = requests.head(backup)
+        response = requests.head(backup_url)
 
         if response.status_code == 302:
             print('[1;33mRestoring the SD backup folder...')
             os.chdir(WORKSPACE_DIR)
             webui_path = os.path.join(WORKSPACE_DIR, BACKUP_FILENAME)
-            open(webui_path, 'wb').write(requests.get(backup).content)
+            open(webui_path, 'wb').write(requests.get(backup_url).content)
             unzst(BACKUP_FILENAME)
             os.remove(BACKUP_FILENAME)
         else:
@@ -367,15 +367,16 @@ def backup_images(huggingface_token):
 
     if os.path.exists('/usr/local/bin/gdrive'):
         username = HfApi().whoami(huggingface_token)["name"]
-        backup = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
-                 f"/main/{GDRIVE_ACCOUNT_FILE}"
-        response = requests.head(backup)
+        backup_url = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
+                     f"/main/{GDRIVE_ACCOUNT_FILE}"
+        print(backup_url)
+        response = requests.head(backup_url)
 
         if response.status_code == 302:
             print('[1;33mSetting up GDrive account...')
             os.chdir(WORKSPACE_DIR)
             webui_path = os.path.join(WORKSPACE_DIR, GDRIVE_ACCOUNT_FILE)
-            open(webui_path, 'wb').write(requests.get(backup).content)
+            open(webui_path, 'wb').write(requests.get(backup_url).content)
             call(f'gdrive account import {GDRIVE_ACCOUNT_FILE}')
 
             print("[1;31mBacking up images")
@@ -386,6 +387,6 @@ def backup_images(huggingface_token):
             call(f'rm -rf outputs')
             print("[1;32mDone")
         else:
-            print("[1;31mGdrive account file in the repo.")
+            print("[1;31mNo Gdrive account file in the repo.")
     else:
         print("[1;31mGdrive not installed")
