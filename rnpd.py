@@ -352,9 +352,7 @@ def rename_file_with_timestamp(file_path):
 
     directory, filename = os.path.split(file_path)
 
-    file_extension = os.path.splitext(filename)[1]
-
-    new_filename = f"{timestamp}{file_extension}"
+    new_filename = f"{timestamp}.tar.gz"
 
     new_file_path = os.path.join(directory, new_filename)
 
