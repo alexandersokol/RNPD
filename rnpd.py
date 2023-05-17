@@ -373,8 +373,8 @@ def backup_images(huggingface_token):
         if response.status_code == 302 or response.status_code == 200:
             print('[1;33mSetting up GDrive account...')
             os.chdir(WORKSPACE_DIR)
-            webui_path = os.path.join(WORKSPACE_DIR, GDRIVE_ACCOUNT_FILE)
-            open(webui_path, 'wb').write(requests.get(backup_url).content)
+            file_path = os.path.join(WORKSPACE_DIR, GDRIVE_ACCOUNT_FILE)
+            open(file_path, 'wb').write(requests.get(backup_url).content)
             time.sleep(5)
             call(f'gdrive account import {GDRIVE_ACCOUNT_FILE}', shell=True)
             os.remove(GDRIVE_ACCOUNT_FILE)
