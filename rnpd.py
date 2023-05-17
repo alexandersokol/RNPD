@@ -231,6 +231,9 @@ def get_start_params(download_sd_model: bool) -> str:
 def prepare_initial_model() -> bool:
     has_prepared_models = False
 
+    if not os.path.isdir(CKPT_DIR):
+        os.makedirs(CKPT_DIR)
+
     extensions = ['.safetensors', '.ckpt', '.pt', '.bin']
     for root, dirs, files in os.walk(CKPT_DIR):
         for file in files:
