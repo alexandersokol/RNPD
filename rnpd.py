@@ -102,9 +102,16 @@ def install_dependencies(force_reinstall: bool):
         sed('s@~/.cache@/workspace/cache@', '/usr/local/lib/python3.10/dist-packages/transformers/utils/hub.py')
         os.chdir(WORKSPACE_DIR)
 
-        git_clone('--depth 1 -q --x main https://github.com/TheLastBen/diffusers')
+        git_clone('--depth 1 -q main https://github.com/TheLastBen/diffusers')
 
         shutil.rmtree('deps')
+
+        clear_output()
+        print('[1;32mDone.')
+
+    if not os.path.exists('/usr/local/bin/gdrive'):
+        clear_output()
+        print('[1;32mInstalling gdrive.')
 
         os.chdir(WORKSPACE_DIR)
         wget('https://github.com/glotlabs/gdrive/releases/download/3.9.0/gdrive_linux-x64.tar.gz')
@@ -356,7 +363,7 @@ def rename_file_with_timestamp(file_path):
 def backup_images(huggingface_token):
     from huggingface_hub import HfApi
 
-    if os.path.exists('/usr/bin/gdrive'):
+    if os.path.exists('/usr/local/bin/gdrive'):
         username = HfApi().whoami(huggingface_token)["name"]
         backup = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
                  f"/main/{GDRIVE_ACCOUNT_FILE}"
