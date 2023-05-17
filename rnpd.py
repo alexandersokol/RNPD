@@ -118,7 +118,7 @@ def install_dependencies(force_reinstall: bool):
         call('tar -xf gdrive_linux-x64.tar.gz', shell=True)
         call('rm gdrive_linux-x64.tar.gz*', shell=True)
         time.sleep(3)
-        call(f'mv {os.path.join(WORKSPACE_DIR, "gdrive")} /usr/local/bin/gdrive')
+        shutil.move(os.path.join(WORKSPACE_DIR, "gdrive"), '/usr/local/bin/gdrive')
 
         clear_output()
         print('[1;32mDone.')
