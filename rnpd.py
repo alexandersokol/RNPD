@@ -241,7 +241,7 @@ def prepare_initial_model() -> bool:
                 has_prepared_models = True
 
     if not has_prepared_models and os.path.exists('/auto-models/SDv1-5.ckpt'):
-        shutil.copy('/auto-models/SDv1-5.ckpt', os.path.join(CKPT_DIR, "SDv1-5.ckpt"))
+        os.symlink('/auto-models/SDv1-5.ckpt', os.path.join(CKPT_DIR, "SDv1-5.ckpt"))
         has_prepared_models = True
 
     if os.path.isdir('/workspace/auto-models'):
