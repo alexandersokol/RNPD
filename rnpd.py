@@ -24,7 +24,7 @@ BACKUP_FILENAME = 'sd_backup_rnpd.tar.zst'
 GDRIVE_ACCOUNT_FILE = 'gdrive_export_account.tar'
 GDRIVE_EXPORT_DIR_ID = '1uafS8-3hieMMevL0IkcWWWlBwD8lM3gr'
 
-SD_DIR = os.path.join(WORKSPACE_DIR, 'sd', )
+SD_DIR = os.path.join(WORKSPACE_DIR, 'sd')
 STABLE_DIFFUSION_DIR = os.path.join(SD_DIR, 'stablediffusion')
 WEBUI_DIR = os.path.join(SD_DIR, 'stable-diffusion-webui')
 
@@ -303,10 +303,8 @@ def backup(huggingface_token):
         print('[1;31mA huggingface write token is required')
 
     else:
-        os.chdir('/workspace')
-
-        if os.path.exists('sd'):
-
+        os.chdir(WORKSPACE_DIR)
+        if os.path.exists(SD_DIR):
             call(
                 f"tar "
                 f"--exclude='stable-diffusion-webui/models/*/*' "
@@ -316,7 +314,7 @@ def backup(huggingface_token):
                 f"--exclude='stable-diffusion-webui/outputs/*/*'"
                 f"--exclude='stable-diffusion-webui/outputs/*/*/*'"
                 f"--exclude='stable-diffusion-webui/outputs/*/*/*/*'"
-                f" --zstd -cf {BACKUP_FILENAME}",
+                f" --zstd -cf {BACKUP_FILENAME} {os.path.basename(SD_DIR)}",
                 shell=True)
             api = HfApi()
             username = api.whoami(token=huggingface_token)["name"]
