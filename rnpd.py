@@ -363,7 +363,8 @@ def rename_file_with_timestamp(file_path):
 def backup_images(huggingface_token):
     from huggingface_hub import HfApi
 
-    if os.path.exists('/usr/local/bin/gdrive'):
+    os.chdir(WORKSPACE_DIR)
+    if os.path.exists('/usr/local/bin/gdrive') and os.path.isdir('outputs'):
         username = HfApi().whoami(huggingface_token)["name"]
         backup_url = f"https://USER:{huggingface_token}@huggingface.co/datasets/{username}/{REPOSITORY_NAME}/resolve" \
                      f"/main/{GDRIVE_ACCOUNT_FILE}"
