@@ -13,7 +13,8 @@ INSTALL_PACKAGES = [
     "gdown",
     "numpy==1.23.5",
     "accelerate==0.12.0",
-    "gradio_client"
+    "gradio_client",
+    "firebase-admin==4.5.0"
 ]
 GRADIO_PACKAGE = 'gradio==3.28.1'
 
@@ -162,7 +163,7 @@ def install_webui(huggingface_token):
             os.chdir(WORKSPACE_DIR)
             webui_path = os.path.join(WORKSPACE_DIR, BACKUP_FILENAME)
             open(webui_path, 'wb').write(requests.get(backup_url).content)
-            unzst(BACKUP_FILENAME)
+            call('tar --zstd -xf sd_backup_rnpd.tar.zst', shell=True)
             os.remove(BACKUP_FILENAME)
         else:
             print('[1;33mBackup not found, using a fresh/existing repo...')
